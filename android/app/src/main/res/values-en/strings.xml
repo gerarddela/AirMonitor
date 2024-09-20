@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">My Places</string>
+
+    <string name="Mostrar">Show Place</string>
+    <string name="Preferencias">Preferences</string>
+    <string name="Acerca_de">About </string>
+    <string name="Salir">Exit</string>
+</resources>
