@@ -1,4 +1,4 @@
-package com.example.tabs;
+package com.example.airmonitor;
 
 import android.content.Context;
 

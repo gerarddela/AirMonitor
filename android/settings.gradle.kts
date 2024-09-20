@@ -13,6 +13,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Tabs"
+rootProject.name = "airmonitor"
 include(":app")
  

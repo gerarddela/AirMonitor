@@ -1,8 +1,0 @@
-<resources>
-    <string name="app_name">Mis Lugares</string>
-
-    <string name="Mostrar">Mostrar Lugar</string>
-    <string name="Preferencias">Preferencias</string>
-    <string name="Acerca_de">Acerca de </string>
-    <string name="Salir">Salir</string>
-</resources>

@@ -1,4 +1,4 @@
-package com.example.tabs;
+package com.example.airmonitor;
 
 import org.junit.Test;
 
