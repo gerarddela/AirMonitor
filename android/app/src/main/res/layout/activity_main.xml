@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -10,38 +10,42 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="botonBuscarDispositivosBTLEPulsado"
-        android:text="Buscar Dispositivos BTLE nou 4"
-        app:layout_constraintBottom_toTopOf="@+id/botonDetenerBusquedaDispositivosBTLE"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
+        android:text="Buscar Dispositivos BTLE"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.5" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <Button
         android:id="@+id/botonDetenerBusquedaDispositivosBTLE"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="botonDetenerBusquedaDispositivosBTLEPulsado"
-        android:text="Detener búsaqueda Dispositivos BTLE"
-        app:layout_constraintBottom_toTopOf="@+id/botonBuscarNuestroDispositivoBTLE"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
+        android:text="Detener búsqueda BTLE"
+        app:layout_constraintTop_toBottomOf="@id/botonBuscarDispositivosBTLE"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/botonBuscarDispositivosBTLE"
-        app:layout_constraintVertical_bias="0.5" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <Button
         android:id="@+id/botonBuscarNuestroDispositivoBTLE"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="botonBuscarNuestroDispositivoBTLEPulsado"
-        android:text="Buscar nuestro dispositivo  BTLE"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
+        android:text="Buscar nuestro dispositivo BTLE"
+        app:layout_constraintTop_toBottomOf="@id/botonDetenerBusquedaDispositivosBTLE"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/botonDetenerBusquedaDispositivosBTLE"
-        app:layout_constraintVertical_bias="0.5" />
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/log_text_view"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="16dp"
+        android:text="Logcat"
+        android:scrollbars="vertical"
+        app:layout_constraintTop_toBottomOf="@id/botonBuscarNuestroDispositivoBTLE"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHeight_percent="0.2" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
