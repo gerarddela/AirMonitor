@@ -4,15 +4,10 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-// -----------------------------------------------------------------------------------
-// @author: Jordi Bataller i Mascarell
-// -----------------------------------------------------------------------------------
-
 public class Utilidades {
 
     public static byte[] stringToBytes ( String texto ) {
         return texto.getBytes();
-        // byte[] b = string.getBytes(StandardCharsets.UTF_8); // Ja
     }
 
     public static UUID stringToUUID(String uuid ) {
@@ -24,10 +19,6 @@ public class Utilidades {
         String masSignificativo = uuid.substring(0, 8);
         String menosSignificativo = uuid.substring(8, 16);
         UUID res = new UUID( Utilidades.bytesToLong( masSignificativo.getBytes() ), Utilidades.bytesToLong( menosSignificativo.getBytes() ) );
-
-        // Log.d( MainActivity.ETIQUETA_LOG, " \n\n***** stringToUUID *** " + uuid  + "=?=" + Utilidades.uuidToString( res ) );
-
-        // UUID res = UUID.nameUUIDFromBytes( comoBytes ); no va como quiero
 
         return res;
     }
@@ -68,6 +59,7 @@ public class Utilidades {
     }
 
     public static int bytesToIntOK( byte[] bytes ) {
+
         if (bytes == null ) {
             return 0;
         }
@@ -77,28 +69,14 @@ public class Utilidades {
         }
         int res = 0;
 
-
-
         for( byte b : bytes ) {
-           /*
-           Log.d( MainActivity.ETIQUETA_LOG, "bytesToInt(): byte: hex=" + Integer.toHexString( b )
-                   + " dec=" + b + " bin=" + Integer.toBinaryString( b ) +
-                   " hex=" + Byte.toString( b )
-           );
-           */
-            res =  (res << 8) // * 16
-                    + (b & 0xFF); // para quedarse con 1 byte (2 cuartetos) de lo que haya en b
-        } // for
+            res =  (res << 8)
+                    + (b & 0xFF);
+        }
 
         if ( (bytes[ 0 ] & 0x8) != 0 ) {
-            // si tiene signo negativo (un 1 a la izquierda del primer byte
-            res = -(~(byte)res)-1; // complemento a 2 (~) de res pero como byte, -1
+            res = -(~(byte)res)-1;
         }
-       /*
-        Log.d( MainActivity.ETIQUETA_LOG, "bytesToInt(): res = " + res + " ~res=" + (res ^ 0xffff)
-                + "~res=" + ~((byte) res)
-        );
-        */
 
         return res;
     }

@@ -44,9 +44,24 @@ public class MainActivity extends AppCompatActivity {
         Log.d(ETIQUETA_LOG, " onCreate(): termina ");
     }
 
+    private static final int MAX_LINEAS_LOG = 10;  // Máximo de líneas a mostrar
     // Método para actualizar el TextView con el log
     private void agregarAlLog(String mensaje) {
+        // Agrega el mensaje al log
         logBuilder.append(mensaje).append("\n");
+
+        // Convierte el StringBuilder a String y separa las líneas
+        String[] lineas = logBuilder.toString().split("\n");
+
+        // Si hay más líneas de las permitidas, elimina las más antiguas
+        if (lineas.length > MAX_LINEAS_LOG) {
+            logBuilder.delete(0, logBuilder.length());  // Limpia el acumulador
+            for (int i = lineas.length - MAX_LINEAS_LOG; i < lineas.length; i++) {
+                logBuilder.append(lineas[i]).append("\n");  // Solo conserva las últimas
+            }
+        }
+
+        // Actualiza el TextView en el hilo de la UI
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -56,8 +71,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void buscarTodosLosDispositivosBTLE() {
-        agregarAlLog(" buscarTodosLosDispositivosBTLE(): empieza ");
-        agregarAlLog(" buscarTodosLosDispositivosBTLE(): instalamos scan callback ");
         Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): empieza ");
         Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): instalamos scan callback ");
 
@@ -65,7 +78,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onScanResult(int callbackType, ScanResult resultado) {
                 super.onScanResult(callbackType, resultado);
-                agregarAlLog(" buscarTodosLosDispositivosBTLE(): onScanResult() ");
                 Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): onScanResult() ");
                 mostrarInformacionDispositivoBTLE(resultado);
             }
@@ -73,18 +85,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onBatchScanResults(List<ScanResult> results) {
                 super.onBatchScanResults(results);
-                agregarAlLog(" buscarTodosLosDispositivosBTLE(): onBatchScanResults() ");
                 Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): onBatchScanResults() ");
             }
 
             @Override
             public void onScanFailed(int errorCode) {
                 super.onScanFailed(errorCode);
-                agregarAlLog(" buscarTodosLosDispositivosBTLE(): onScanFailed() ");
                 Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): onScanFailed() ");
             }
         };
-        agregarAlLog(" buscarTodosLosDispositivosBTLE(): empezamos a escanear ");
         Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): empezamos a escanear ");
         this.elEscanner.startScan(this.callbackDelEscaneo);
     }
@@ -122,21 +131,9 @@ public class MainActivity extends AppCompatActivity {
         Log.d(ETIQUETA_LOG, " ****************************************************");
 
         // Log de la app
-        agregarAlLog(" ****************************************************");
-        agregarAlLog(" ****** DISPOSITIVO DETECTADO BTLE ****************** ");
-        agregarAlLog(" nombre = " + bluetoothDevice.getName());
-        agregarAlLog(" dirección = " + bluetoothDevice.getAddress());
-        agregarAlLog(" rssi = " + rssi);
-        agregarAlLog(" bytes = " + new String(bytes));
-        agregarAlLog(" bytes (" + bytes.length + ") = " + Utilidades.bytesToHexString(bytes));
-
-        agregarAlLog(" ----------------------------------------------------");
-        agregarAlLog(" prefijo  = " + Utilidades.bytesToHexString(tib.getPrefijo()));
-        agregarAlLog(" uuid  = " + Utilidades.bytesToHexString(tib.getUUID()));
-        agregarAlLog(" major  = " + Utilidades.bytesToHexString(tib.getMajor()) + "( " + Utilidades.bytesToInt(tib.getMajor()) + " ) ");
-        agregarAlLog(" minor  = " + Utilidades.bytesToHexString(tib.getMinor()) + "( " + Utilidades.bytesToInt(tib.getMinor()) + " ) ");
-        agregarAlLog(" txPower  = " + Integer.toHexString(tib.getTxPower()) + " ( " + tib.getTxPower() + " )");
-        agregarAlLog(" ****************************************************");
+        agregarAlLog("Dispositivo BTLE detectado: ");
+        agregarAlLog("      Nombre: " + bluetoothDevice.getName());
+        agregarAlLog("      UUID: " + Utilidades.bytesToString(tib.getUUID()));
     }
 
     private void buscarEsteDispositivoBTLE(final UUID dispositivoBuscado) {
