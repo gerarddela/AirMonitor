@@ -7,9 +7,8 @@
 #include "PuertoSerie.h"
 
 namespace Globales {
-  
-  LED elLED(7);
 
+  LED elLED(7);
   PuertoSerie elPuerto(115200);
 
 };
@@ -19,25 +18,20 @@ namespace Globales {
 #include "Medidor.h"
 
 namespace Globales {
-
   Publicador elPublicador;
-
   Medidor elMedidor;
-
 };
 
 void inicializarPlaquita() {}
 
 void setup() {
-
   Globales::elPuerto.esperarDisponible();
-
   inicializarPlaquita();
 
+  // Encender la emisora solo una vez al principio
   Globales::elPublicador.encenderEmisora();
 
   Globales::elMedidor.iniciarMedidor();
-
   esperar(1000);
 
   Globales::elPuerto.escribir("---- setup(): fin ---- \n ");
@@ -50,55 +44,58 @@ inline void lucecitas() {
   esperar(400);
   elLED.brillar(100);
   esperar(400);
-  Globales::elLED.brillar(100);
+  elLED.brillar(100);
   esperar(400);
-  Globales::elLED.brillar(1000);
+  elLED.brillar(1000);
   esperar(1000);
 }
 
 namespace Loop {
   uint8_t cont = 0;
+  unsigned long previousMillis = 0;   // Variable para medir el tiempo
+  const long interval = 2000;         // Intervalo de 2 segundos para los anuncios
 }
 
 void loop() {
-
   using namespace Loop;
   using namespace Globales;
 
-  cont++;
+  unsigned long currentMillis = millis();
 
-  elPuerto.escribir("\n---- loop(): empieza ");
-  elPuerto.escribir(cont);
-  elPuerto.escribir("\n");
+  // Verifica si ha pasado el tiempo especificado (2 segundos)
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;  // Actualiza el tiempo anterior
 
-  lucecitas();
+    cont++;
 
-  int valorCO2 = elMedidor.medirCO2();
-  
-  elPublicador.publicarCO2(valorCO2, cont, 1000);
+    elPuerto.escribir("\n---- loop(): empieza ");
+    elPuerto.escribir(cont);
+    elPuerto.escribir("\n");
 
-  int valorTemperatura = elMedidor.medirTemperatura();
-  
-  elPublicador.publicarTemperatura(valorTemperatura, cont, 1000);
+    lucecitas();
 
-  char datos[21] = {
-    'H', 'o', 'l', 'a',
-    'H', 'o', 'l', 'a',
-    'H', 'o', 'l', 'a',
-    'H', 'o', 'l', 'a',
-    'H', 'o', 'l', 'a',
-    'H'
-  };
+    int valorCO2 = elMedidor.medirCO2();
+    elPublicador.publicarCO2(valorCO2, cont, 1000); // Publicar CO2
 
-  // Accede a la emisora a través de elPublicador
-  elPublicador.encenderEmisora();
-  elPublicador.laEmisora.emitirAnuncioIBeaconLibre(&datos[0], 21);
+    int valorTemperatura = elMedidor.medirTemperatura();
+    elPublicador.publicarTemperatura(valorTemperatura, cont, 1000); // Publicar temperatura
 
-  esperar(2000);
+    char datos[21] = {
+      'H', 'o', 'l', 'a',
+      'H', 'o', 'l', 'a',
+      'H', 'o', 'l', 'a',
+      'H', 'o', 'l', 'a',
+      'H', 'o', 'l', 'a',
+      'H'
+    };
 
-  elPublicador.laEmisora.detenerAnuncio();
+    // Emitir un anuncio de iBeacon sin detenerlo en cada loop
+    elPublicador.laEmisora.emitirAnuncioIBeaconLibre(&datos[0], 21);
 
-  elPuerto.escribir("---- loop(): acaba **** ");
-  elPuerto.escribir(cont);
-  elPuerto.escribir("\n");
+    elPuerto.escribir("---- loop(): acaba **** ");
+    elPuerto.escribir(cont);
+    elPuerto.escribir("\n");
+  }
+
+  // Eliminar detener anuncios repetidamente en cada iteración del loop
 }
