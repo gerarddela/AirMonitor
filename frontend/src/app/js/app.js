@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Función para obtener las últimas mediciones
     function fetchLatestMeasurements() {
-        fetch('http://localhost:3000/mediciones')
+        fetch('http://localhost:13000/mediciones')
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok ' + response.statusText);

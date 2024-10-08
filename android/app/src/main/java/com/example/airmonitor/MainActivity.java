@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(ETIQUETA_LOG, " onCreate(): termina ");
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.236.37.23:13000/")
+                .baseUrl("http://172.20.10.2:13000/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         apiService = retrofit.create(ApiService.class);
@@ -143,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void botonBuscarNuestroDispositivoBTLEPulsado(View v) {
-        buscarEsteDispositivoBTLE(Utilidades.stringToUUID("EQUIPO-JAVIER-3A"));
+        buscarEsteDispositivoBTLE(Utilidades.stringToUUID("EQUIPO-GERARD-3A"));
     }
 
     public void botonDetenerBusquedaDispositivosBTLEPulsado(View v) {
@@ -168,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
         String uuidDispositivo = Utilidades.bytesToHexString(tib.getUUID());
         Log.d(ETIQUETA_LOG, " uuid  = " + uuidDispositivo);
 
-        UUID uuidObjetivo = Utilidades.stringToUUID("EQUIPO-JAVIER-3A");
+        UUID uuidObjetivo = Utilidades.stringToUUID("EQUIPO-GERARD-3A");
         if (uuidDispositivo.equals(Utilidades.uuidToHexString(uuidObjetivo))) {
             Log.d(ETIQUETA_LOG, "Te has conectado a la SparkFun: " + bluetoothDevice.getName());
             agregarAlLog("Te has conectado a la SparkFun: " + bluetoothDevice.getName());

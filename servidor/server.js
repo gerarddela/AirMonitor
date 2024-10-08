@@ -13,7 +13,7 @@ const pool = new Pool({
 
 // Crear un servidor Express
 const app = express();
-const PORT = 13000;
+const PORT = 3000;
 
 // Middleware para CORS
 app.use(cors());
@@ -39,14 +39,21 @@ app.get('/mediciones', async (req, res) => {
 
 // Nueva ruta POST para agregar mediciones
 app.post('/mediciones', async (req, res) => {
-    const { co2, temperatura } = req.body;
+    const { name, value } = req.body; // Cambiado para que coincida con la estructura de SensorData
 
-    if (co2 === undefined || temperatura === undefined) {
-        return res.status(400).send('Los campos "co2" y "temperatura" son requeridos.');
+    // Verificar que ambos campos son proporcionados
+    if (!name || !value) {
+        return res.status(400).send('Los campos "name" y "value" son requeridos.');
+    }
+
+    // Comprobación para asegurar que el valor es un número
+    if (isNaN(value)) {
+        return res.status(400).send('El campo "value" debe ser un número.');
     }
 
     try {
-        await insertarMedicion(parseFloat(co2), parseFloat(temperatura));
+        // Aquí podrías hacer una lógica para asegurarte de que el nombre corresponde a CO2 o Temperatura
+        await insertarMedicion(name === 'CO2' ? parseFloat(value) : null, name === 'Temperatura' ? parseFloat(value) : null);
         res.status(201).send('Medición insertada con éxito');
     } catch (err) {
         console.error('Error al insertar la medición:', err);
@@ -76,8 +83,8 @@ async function crearTablaMediciones() {
     const query = `
         CREATE TABLE IF NOT EXISTS mediciones (
             id SERIAL PRIMARY KEY,
-            co2 DECIMAL(5, 2) NOT NULL,
-            temperatura DECIMAL(5, 2) NOT NULL,
+            co2 DECIMAL(5, 2),
+            temperatura DECIMAL(5, 2),
             fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     `;
