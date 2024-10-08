@@ -7,7 +7,7 @@
 #include "PuertoSerie.h"
 
 namespace Globales {
-
+  
   LED elLED(7);
   PuertoSerie elPuerto(115200);
 
@@ -74,11 +74,15 @@ void loop() {
 
     lucecitas();
 
+    // Obtener mediciones simuladas de CO2 y temperatura
     int valorCO2 = elMedidor.medirCO2();
     elPublicador.publicarCO2(valorCO2, cont, 1000); // Publicar CO2
 
     int valorTemperatura = elMedidor.medirTemperatura();
     elPublicador.publicarTemperatura(valorTemperatura, cont, 1000); // Publicar temperatura
+
+    // Detener el anuncio anterior antes de emitir un nuevo anuncio libre
+    elPublicador.laEmisora.detenerAnuncio();
 
     char datos[21] = {
       'H', 'o', 'l', 'a',
@@ -96,6 +100,4 @@ void loop() {
     elPuerto.escribir(cont);
     elPuerto.escribir("\n");
   }
-
-  // Eliminar detener anuncios repetidamente en cada iteración del loop
 }

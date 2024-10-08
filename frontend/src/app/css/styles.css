@@ -1,0 +1,29 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin-top: 50px;
+    background-color: #f0f0f0; /* Color de fondo suave */
+}
+
+h1 {
+    color: #87CEEB;
+}
+
+h2 {
+    margin: 10px 0;
+}
+
+#co2Value, #tempValue {
+    font-weight: bold;
+    font-size: 1.5em; /* Aumentar el tamaño del texto */
+    color: #333; /* Color del texto */
+    margin: 10px 0;
+}
+
+p {
+    background-color: #ffffff; /* Fondo blanco para los textos */
+    padding: 10px;
+    border-radius: 5px; /* Bordes redondeados */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+    display: inline-block; /* Ajusta el ancho del fondo */
+}

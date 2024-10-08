@@ -25,40 +25,36 @@ public:
     RUIDO = 13
   };
 
-  Publicador( ) {
-  }
+  Publicador() {}
 
+  // Encender la emisora
   void encenderEmisora() {
-    (*this).laEmisora.encenderEmisora();
+    laEmisora.encenderEmisora();  // Eliminando el uso innecesario de (*this)
   }
 
-  void publicarCO2( int16_t valorCO2, uint8_t contador, long tiempoEspera ) {
+  // Publicar valor de CO2
+  void publicarCO2(int16_t valorCO2, uint8_t contador, long tiempoEspera) {
     uint16_t major = (MedicionesID::CO2 << 8) + contador;
-    (*this).laEmisora.emitirAnuncioIBeacon( (*this).beaconUUID, 
-                                            major,
-                                            valorCO2,
-                                            (*this).RSSI
-                                          );
-    delay( tiempoEspera );  // Cambiar "esperar" por "delay"
-    (*this).laEmisora.detenerAnuncio();
+    laEmisora.emitirAnuncioIBeacon(beaconUUID, major, valorCO2, RSSI);
+    delay(tiempoEspera);
+    laEmisora.detenerAnuncio();
   }
 
-  void publicarTemperatura( int16_t valorTemperatura, uint8_t contador, long tiempoEspera ) {
+  // Publicar valor de temperatura
+  void publicarTemperatura(int16_t valorTemperatura, uint8_t contador, long tiempoEspera) {
     uint16_t major = (MedicionesID::TEMPERATURA << 8) + contador;
-    (*this).laEmisora.emitirAnuncioIBeacon( (*this).beaconUUID, 
-                                            major,
-                                            valorTemperatura,
-                                            (*this).RSSI
-                                          );
-    delay( tiempoEspera );  // Usar delay en lugar de "esperar"
-    (*this).laEmisora.detenerAnuncio();
+    laEmisora.emitirAnuncioIBeacon(beaconUUID, major, valorTemperatura, RSSI);
+    delay(tiempoEspera);
+    laEmisora.detenerAnuncio();
   }
 
+  // Publicar todas las mediciones (CO2 y Temperatura)
   void publicarMediciones() {
-    int16_t valorCO2 = random(400, 1000);  // Simular valores entre 400 ppm y 1000 ppm
-    int16_t valorTemperatura = random(18, 26);  // Simular temperatura entre 18°C y 26°C
+    // Simular valores de CO2 y temperatura
+    int16_t valorCO2 = random(400, 1000);  // CO2 entre 400 ppm y 1000 ppm
+    int16_t valorTemperatura = random(18, 26);  // Temperatura entre 18°C y 26°C
 
-    long tiempoEspera = 1000;  // Tiempo de espera en milisegundos (1 segundo)
+    long tiempoEspera = 1000;  // Espera de 1 segundo entre anuncios
 
     // Publicar CO2
     publicarCO2(valorCO2, contador, tiempoEspera);

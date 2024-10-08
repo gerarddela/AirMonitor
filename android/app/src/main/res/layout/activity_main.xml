@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -55,19 +54,20 @@
         app:layout_constraintVertical_bias="0.5" />
 
     <Button
-        android:id="@+id/botonDetenerBusquedaDispositivosBTLE"
+        android:id="@+id/botonBuscarDispositivosBTLE"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="264dp"
         android:layout_marginEnd="32dp"
-        android:backgroundTint="#F67165"
+        android:backgroundTint="#87CEEB"
         android:fontFamily="sans-serif-medium"
-        android:onClick="botonDetenerBusquedaDispositivosBTLEPulsado"
-        android:text="Detener búsqueda"
+        android:onClick="botonBuscarDispositivosBTLEPulsado"
+        android:text="Buscar dispositivos"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/botonBuscarNuestroDispositivoBTLE" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/botonBuscarNuestroDispositivoBTLE"
@@ -85,20 +85,19 @@
         app:layout_constraintTop_toBottomOf="@+id/botonBuscarDispositivosBTLE" />
 
     <Button
-        android:id="@+id/botonBuscarDispositivosBTLE"
+        android:id="@+id/botonDetenerBusquedaDispositivosBTLE"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
-        android:layout_marginTop="264dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="32dp"
-        android:backgroundTint="#87CEEB"
+        android:backgroundTint="#F67165"
         android:fontFamily="sans-serif-medium"
-        android:onClick="botonBuscarDispositivosBTLEPulsado"
-        android:text="Buscar dispositivos"
+        android:onClick="botonDetenerBusquedaDispositivosBTLEPulsado"
+        android:text="Detener búsqueda"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/botonBuscarNuestroDispositivoBTLE" />
 
     <ScrollView
         android:layout_width="match_parent"

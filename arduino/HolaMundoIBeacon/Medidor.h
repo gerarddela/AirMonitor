@@ -12,7 +12,7 @@ public:
   }
 
   int medirCO2() {
-    return 235;
+    return 23;
   }
 
   int medirTemperatura() {

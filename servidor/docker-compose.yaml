@@ -1,0 +1,12 @@
+version: "3"
+services: 
+  db:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_USER: gerarddelafuente
+      POSTGRES_DB: airmonitor_db
+  app:
+    build: .
+    ports:
+      - 3000:13000
