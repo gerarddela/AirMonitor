@@ -111,7 +111,6 @@ public class MainActivity extends AppCompatActivity {
         this.elEscanner.startScan(null, scanSettings, this.callbackDelEscaneo);
     }
 
-
     private void buscarEsteDispositivoBTLE(final UUID dispositivoBuscado) {
         detenerBusquedaDispositivosBTLE();
 
@@ -151,7 +150,6 @@ public class MainActivity extends AppCompatActivity {
         this.elEscanner.startScan(null, scanSettings, this.callbackDelEscaneo);
     }
 
-
     private void detenerBusquedaDispositivosBTLE() {
         agregarAlLog("Se ha detenido la búsqueda.");
         if (this.callbackDelEscaneo != null) {
@@ -164,7 +162,6 @@ public class MainActivity extends AppCompatActivity {
             textViewTemperatura.setText("Temperatura: - ");
         });
     }
-
 
     public void botonBuscarDispositivosBTLEPulsado(View v) {
         this.buscarTodosLosDispositivosBTLE();
@@ -214,13 +211,10 @@ public class MainActivity extends AppCompatActivity {
             valorCO2 = minor; // El valor está en el campo minor para CO2
         } else if (major == 0x12) { // Identificador para Temperatura
             valorTemperatura = minor / 10.0f; // Asegúrate de que este ajuste sea correcto
-        } else {
-            Log.d(ETIQUETA_LOG, "Major no reconocido: " + major);
         }
 
         Log.d(ETIQUETA_LOG, "CO2 = " + valorCO2 + " ppm");
         Log.d(ETIQUETA_LOG, "Temperatura = " + valorTemperatura + " Cº");
-
 
         // Declarar las variables finales para usarlas dentro de la lambda
         final float finalValorCO2 = valorCO2;
@@ -241,8 +235,6 @@ public class MainActivity extends AppCompatActivity {
             onDataReceived((int) valorCO2, (int) valorTemperatura); // Enviar valores al método onDataReceived
         }
     }
-
-
 
     public void onDataReceived(int co2, int temperature) {
         agregarAlLog("Datos recibidos: CO2: " + co2 + ", Temp: " + temperature);
@@ -298,32 +290,24 @@ public class MainActivity extends AppCompatActivity {
     private void agregarAlLog(String mensaje) {
         logBuilder.append(mensaje).append("\n");
         logTextView.setText(logBuilder.toString());
-
-        if (logBuilder.toString().split("\n").length > MAX_LINEAS_LOG) {
-            String[] lineas = logBuilder.toString().split("\n");
-            logBuilder = new StringBuilder();
-            for (int i = lineas.length - MAX_LINEAS_LOG; i < lineas.length; i++) {
-                logBuilder.append(lineas[i]).append("\n");
-            }
+        if (logBuilder.length() > MAX_LINEAS_LOG) {
+            int indexFin = logBuilder.indexOf("\n", logBuilder.indexOf("\n") + 1);
+            logBuilder.delete(0, indexFin + 1);
         }
-        logTextView.setText(logBuilder.toString());
     }
 
     private void inicializarBlueTooth() {
-        BluetoothAdapter bta = BluetoothAdapter.getDefaultAdapter();
-        if (bta == null) {
-            Log.d(ETIQUETA_LOG, "Bluetooth no está soportado.");
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (bluetoothAdapter == null) {
+            agregarAlLog("Este dispositivo no soporta Bluetooth");
             return;
         }
-        if (!bta.isEnabled()) {
-            Log.d(ETIQUETA_LOG, "Bluetooth no está habilitado.");
+        if (!bluetoothAdapter.isEnabled()) {
+            agregarAlLog("Bluetooth está desactivado");
+            // Puedes iniciar una actividad para activar Bluetooth aquí
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, CODIGO_PETICION_PERMISOS);
-            }
-        }
-        elEscanner = bta.getBluetoothLeScanner();
+        this.elEscanner = bluetoothAdapter.getBluetoothLeScanner();
+        Log.d(ETIQUETA_LOG, "Bluetooth LE Scanner inicializado.");
     }
 
     @Override
