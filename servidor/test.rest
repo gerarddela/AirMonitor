@@ -1,0 +1,25 @@
+###
+GET http://localhost:13000/setup
+
+###
+GET http://localhost:13000/mediciones
+
+###
+POST http://localhost:13000/mediciones
+Content-Type: application/json
+
+{
+    "usuario_id": 1,
+    "tipo_dato_nombre": "CO2",
+    "valor": 450
+}
+
+###
+POST http://localhost:13000/mediciones
+Content-Type: application/json
+
+{
+    "usuario_id": 1,
+    "tipo_dato_nombre": "Temperatura",
+    "valor": 25.5
+}

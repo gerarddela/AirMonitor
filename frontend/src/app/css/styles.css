@@ -1,0 +1,29 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin-top: 50px;
+    background-color: #f0f0f0;
+}
+
+h1 {
+    color: #87CEEB;
+}
+
+h2 {
+    margin: 10px 0;
+}
+
+#co2Value, #tempValue {
+    font-weight: bold;
+    font-size: 1.5em;
+    color: #333;
+    margin: 10px 0;
+}
+
+p {
+    background-color: #ffffff;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); 
+    display: inline-block;
+}

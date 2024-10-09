@@ -1,7 +1,4 @@
-
 package com.example.airmonitor;
-// ------------------------------------------------------------------
-// ------------------------------------------------------------------
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
@@ -15,6 +12,12 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -23,139 +26,108 @@ import androidx.core.content.ContextCompat;
 import java.util.List;
 import java.util.UUID;
 
-// ------------------------------------------------------------------
-// ------------------------------------------------------------------
-
 public class MainActivity extends AppCompatActivity {
 
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
     private static final String ETIQUETA_LOG = ">>>>";
-
     private static final int CODIGO_PETICION_PERMISOS = 11223344;
+    private static final int MAX_LINEAS_LOG = 10;
 
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
     private BluetoothLeScanner elEscanner;
+    private ScanCallback callbackDelEscaneo;
 
-    private ScanCallback callbackDelEscaneo = null;
+    private TextView logTextView;
+    private StringBuilder logBuilder = new StringBuilder();
+    private TextView textViewCO2;
+    private TextView textViewTemperatura;
+    private ApiService apiService;
 
-
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
+        logTextView = findViewById(R.id.log_text_view);
+        textViewCO2 = findViewById(R.id.ValorCO2);
+        textViewTemperatura = findViewById(R.id.ValorTemp);
 
+        textViewCO2.setText("CO2: -");
+        textViewTemperatura.setText("Temperatura: -");
+
+        Log.d(ETIQUETA_LOG, "onCreate(): empieza");
         inicializarBlueTooth();
+        Log.d(ETIQUETA_LOG, "onCreate(): termina");
 
-        Log.d(ETIQUETA_LOG, " onCreate(): termina ");
-    } // onCreate()
+        String baseUrl = ApiConfig.BASE_URL;
+        Retrofit retrofit = ApiClient.getClient(baseUrl);
+        apiService = retrofit.create(ApiService.class);
+    }
 
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
     private void buscarTodosLosDispositivosBTLE() {
-        Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): empieza ");
-
-        Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): instalamos scan callback ");
+        detenerBusquedaDispositivosBTLE();
+        Log.d(ETIQUETA_LOG, "buscarTodosLosDispositivosBTLE(): empieza");
 
         this.callbackDelEscaneo = new ScanCallback() {
             @Override
             public void onScanResult(int callbackType, ScanResult resultado) {
                 super.onScanResult(callbackType, resultado);
-                Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): onScanResult() ");
 
-                mostrarInformacionDispositivoBTLE(resultado);
+                String nombreDispositivo = resultado.getDevice().getName();
+                String uuid = nombreDispositivo != null ? nombreDispositivo : "";
+
+                if (!"EQUIPO-GERARD-3A".equals(uuid)) {
+                    mostrarInformacionDispositivoBTLE(resultado);
+                    agregarAlLog("Dispositivo detectado:\n" + resultado.getDevice().getAddress());
+                } else {
+                    Log.d(ETIQUETA_LOG, "Dispositivo ignorado: " + uuid);
+                }
             }
 
             @Override
             public void onBatchScanResults(List<ScanResult> results) {
                 super.onBatchScanResults(results);
-                Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): onBatchScanResults() ");
+                for (ScanResult result : results) {
+                    String nombreDispositivo = result.getDevice().getName();
+                    String uuid = nombreDispositivo != null ? nombreDispositivo : "";
+
+                    if (!"EQUIPO-GERARD-3A".equals(uuid)) {
+                        mostrarInformacionDispositivoBTLE(result);
+                        agregarAlLog("Dispositivo detectado:\n" + result.getDevice().getAddress());
+                    } else {
+                        Log.d(ETIQUETA_LOG, "Dispositivo ignorado: " + uuid);
+                    }
+                }
             }
 
             @Override
             public void onScanFailed(int errorCode) {
                 super.onScanFailed(errorCode);
-                Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): onScanFailed() ");
+                Log.d(ETIQUETA_LOG, "buscarTodosLosDispositivosBTLE(): onScanFailed() - Código de error: " + errorCode);
             }
         };
 
-        Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): empezamos a escanear ");
+        ScanSettings scanSettings = new ScanSettings.Builder()
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .build();
+        this.elEscanner.startScan(null, scanSettings, this.callbackDelEscaneo);
+    }
 
-        this.elEscanner.startScan(this.callbackDelEscaneo);
-    } // ()
-
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
-    private void mostrarInformacionDispositivoBTLE(ScanResult resultado) {
-        BluetoothDevice bluetoothDevice = resultado.getDevice();
-        byte[] bytes = resultado.getScanRecord().getBytes();
-        int rssi = resultado.getRssi();
-
-        // Log
-        Log.d(ETIQUETA_LOG, " ****************************************************");
-        Log.d(ETIQUETA_LOG, " ****** DISPOSITIVO DETECTADO BTLE ****************** ");
-        Log.d(ETIQUETA_LOG, " ****************************************************");
-        Log.d(ETIQUETA_LOG, " nombre = " + bluetoothDevice.getName());
-        Log.d(ETIQUETA_LOG, " toString = " + bluetoothDevice.toString());
-        Log.d(ETIQUETA_LOG, " dirección = " + bluetoothDevice.getAddress());
-        Log.d(ETIQUETA_LOG, " rssi = " + rssi);
-        Log.d(ETIQUETA_LOG, " bytes = " + new String(bytes));
-        Log.d(ETIQUETA_LOG, " bytes (" + bytes.length + ") = " + Utilidades.bytesToHexString(bytes));
-
-        TramaIBeacon tib = new TramaIBeacon(bytes);
-
-        Log.d(ETIQUETA_LOG, " ----------------------------------------------------");
-        Log.d(ETIQUETA_LOG, " prefijo  = " + Utilidades.bytesToHexString(tib.getPrefijo()));
-        Log.d(ETIQUETA_LOG, "          advFlags = " + Utilidades.bytesToHexString(tib.getAdvFlags()));
-        Log.d(ETIQUETA_LOG, "          advHeader = " + Utilidades.bytesToHexString(tib.getAdvHeader()));
-        Log.d(ETIQUETA_LOG, "          companyID = " + Utilidades.bytesToHexString(tib.getCompanyID()));
-        Log.d(ETIQUETA_LOG, "          iBeacon type = " + Integer.toHexString(tib.getiBeaconType()));
-        Log.d(ETIQUETA_LOG, "          iBeacon length 0x = " + Integer.toHexString(tib.getiBeaconLength()) + " ( " + tib.getiBeaconLength() + " ) ");
-        Log.d(ETIQUETA_LOG, " uuid  = " + Utilidades.bytesToHexString(tib.getUUID()));
-        Log.d(ETIQUETA_LOG, " uuid  = " + Utilidades.bytesToString(tib.getUUID()));
-        Log.d(ETIQUETA_LOG, " major  = " + Utilidades.bytesToHexString(tib.getMajor()) + "( " + Utilidades.bytesToInt(tib.getMajor()) + " ) ");
-        Log.d(ETIQUETA_LOG, " minor  = " + Utilidades.bytesToHexString(tib.getMinor()) + "( " + Utilidades.bytesToInt(tib.getMinor()) + " ) ");
-        Log.d(ETIQUETA_LOG, " txPower  = " + Integer.toHexString(tib.getTxPower()) + " ( " + tib.getTxPower() + " )");
-        Log.d(ETIQUETA_LOG, " ****************************************************");
-    } // ()
-
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
     private void buscarEsteDispositivoBTLE(final UUID dispositivoBuscado) {
-        Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): empieza");
-
-        Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): instalamos scan callback");
+        detenerBusquedaDispositivosBTLE();
 
         this.callbackDelEscaneo = new ScanCallback() {
             @Override
             public void onScanResult(int callbackType, ScanResult resultado) {
                 super.onScanResult(callbackType, resultado);
-                Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): onScanResult()");
-
-                // Obtén el dispositivo desde el resultado
                 BluetoothDevice dispositivo = resultado.getDevice();
                 byte[] bytes = resultado.getScanRecord().getBytes();
-
-                // Crear objeto TramaIBeacon para extraer el UUID
                 TramaIBeacon tib = new TramaIBeacon(bytes);
-                UUID uuid = Utilidades.stringToUUID(Utilidades.bytesToString(tib.getUUID()));
+                UUID uuid = Utilidades.bytesToUUID(tib.getUUID());
 
-                // Comprueba si el UUID coincide con el que buscas
                 if (uuid.equals(dispositivoBuscado)) {
-                    Log.d(ETIQUETA_LOG, "Dispositivo encontrado: " + uuid);
-                    mostrarInformacionDispositivoBTLE(resultado);
+                    Log.d(ETIQUETA_LOG, "Conectado al dispositivo Sparkfun: " + dispositivo.getName());
+                    agregarAlLog("Conectado al dispositivo Sparkfun: " + dispositivo.getName());
 
-                    // Extraer el valor minor y actualizar el TextView
-                    byte[] minorBytes = tib.getMinor(); // Asumiendo que esto devuelve un byte[]
-                    int minorValue = Utilidades.bytesToInt(minorBytes);
-                    final String minorText = "Minor: " + minorValue;
-                }else{
-                    Log.d(ETIQUETA_LOG, "Dispositivo no objetivo encontrado: " + uuid);
+                    mostrarValores(bytes, true, true);
                 }
             }
 
@@ -168,137 +140,179 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onScanFailed(int errorCode) {
                 super.onScanFailed(errorCode);
-                Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): onScanFailed()");
+                Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): onScanFailed() - Código de error: " + errorCode);
             }
         };
 
-        // Opciones de escaneo (opcional, para configuración avanzada)
         ScanSettings scanSettings = new ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)  // Modo de escaneo rápido
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                 .build();
-
-        Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): empezamos a escanear buscando: " + dispositivoBuscado);
-
-        // Iniciar el escaneo sin filtros
         this.elEscanner.startScan(null, scanSettings, this.callbackDelEscaneo);
     }
 
+    private void detenerBusquedaDispositivosBTLE() {
+        agregarAlLog("Se ha detenido la búsqueda.");
+        if (this.callbackDelEscaneo != null) {
+            this.elEscanner.stopScan(this.callbackDelEscaneo);
+            this.callbackDelEscaneo = null;
+        }
 
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
+        runOnUiThread(() -> {
+            textViewCO2.setText("CO2: - ");
+            textViewTemperatura.setText("Temperatura: - ");
+        });
+    }
+
+    public void botonBuscarDispositivosBTLEPulsado(View v) {
+        this.buscarTodosLosDispositivosBTLE();
+    }
 
     public void botonBuscarNuestroDispositivoBTLEPulsado(View v) {
-        Log.d(ETIQUETA_LOG, " boton nuestro dispositivo BTLE Pulsado");
-        this.buscarEsteDispositivoBTLE(Utilidades.stringToUUID("HeyJavierJavier!"));
-    } // ()
+        buscarEsteDispositivoBTLE(Utilidades.stringToUUID("EQUIPO-GERARD-3A"));
+    }
 
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
-    private void detenerBusquedaDispositivosBTLE() {
-        if (this.callbackDelEscaneo == null) {
-            return;
-        }
-        this.elEscanner.stopScan(this.callbackDelEscaneo);
-        this.callbackDelEscaneo = null;
-    } // ()
-
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
-    public void botonBuscarDispositivosBTLEPulsado(View v) {
-        Log.d(ETIQUETA_LOG, " boton buscar dispositivos BTLE Pulsado");
-        this.buscarTodosLosDispositivosBTLE();
-    } // ()
-
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
     public void botonDetenerBusquedaDispositivosBTLEPulsado(View v) {
-        Log.d(ETIQUETA_LOG, " boton detener busqueda dispositivos BTLE Pulsado");
-        this.detenerBusquedaDispositivosBTLE();
-    } // ()
+        detenerBusquedaDispositivosBTLE();
+    }
 
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
-    private void inicializarBlueTooth() {
-        Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): obtenemos adaptador BT ");
+    private void mostrarInformacionDispositivoBTLE(ScanResult resultado) {
+        BluetoothDevice bluetoothDevice = resultado.getDevice();
+        byte[] bytes = resultado.getScanRecord().getBytes();
+        int rssi = resultado.getRssi();
 
-        BluetoothAdapter bta = BluetoothAdapter.getDefaultAdapter();
+        Log.d(ETIQUETA_LOG, " ****************************************************");
+        Log.d(ETIQUETA_LOG, " ****** DISPOSITIVO DETECTADO BTLE ****************** ");
+        Log.d(ETIQUETA_LOG, " ****************************************************");
+        Log.d(ETIQUETA_LOG, " nombre = " + bluetoothDevice.getName());
+        Log.d(ETIQUETA_LOG, " dirección = " + bluetoothDevice.getAddress());
+        Log.d(ETIQUETA_LOG, " rssi = " + rssi);
+        Log.d(ETIQUETA_LOG, " bytes = " + new String(bytes));
+        Log.d(ETIQUETA_LOG, " bytes (" + bytes.length + ") = " + Utilidades.bytesToHexString(bytes));
 
-        Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): habilitamos adaptador BT ");
+        mostrarValores(bytes, false, false);
+    }
 
-        bta.enable();
-
-        Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): habilitado =  " + bta.isEnabled());
-
-        Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): estado =  " + bta.getState());
-
-        Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): obtenemos escaner btle ");
-
-        this.elEscanner = bta.getBluetoothLeScanner();
-
-        if (this.elEscanner == null) {
-            Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): Socorro: NO hemos obtenido escaner btle  !!!!");
+    private void mostrarValores(byte[] bytes, boolean enviarDatos, boolean mostrarEnUI) {
+        if (bytes.length < 14) {
+            Log.d(ETIQUETA_LOG, "El array de bytes es demasiado corto.");
+            return; // Salir si no hay suficientes bytes
         }
 
-        Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): voy a perdir permisos (si no los tuviera) !!!!");
+        int major = ((bytes[10] & 0xFF) << 8 | (bytes[11] & 0xFF));
+        int minor = ((bytes[12] & 0xFF) << 8 | (bytes[13] & 0xFF));
 
-        // Comprobamos la versión de Android
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Para Android 12 y versiones posteriores, pedimos permisos de "dispositivos cercanos"
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED
-                    || ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(
-                        MainActivity.this,
-                        new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT},
-                        CODIGO_PETICION_PERMISOS
-                );
+        float valorCO2 = 0;
+        float valorTemperatura = 0;
+
+        Log.d(ETIQUETA_LOG, "Major = " + major + ", Minor = " + minor);
+
+        // Usar el valor de major para determinar si es CO2 o Temperatura
+        if (major == 0x11) { // Identificador para CO2
+            valorCO2 = minor; // El valor está en el campo minor para CO2
+        } else if (major == 0x12) { // Identificador para Temperatura
+            valorTemperatura = minor / 10.0f; // Asegúrate de que este ajuste sea correcto
+        }
+
+        Log.d(ETIQUETA_LOG, "CO2 = " + valorCO2 + " ppm");
+        Log.d(ETIQUETA_LOG, "Temperatura = " + valorTemperatura + " Cº");
+
+        // Declarar las variables finales para usarlas dentro de la lambda
+        final float finalValorCO2 = valorCO2;
+        final float finalValorTemperatura = valorTemperatura;
+
+        // Actualizar la UI con los valores
+        if (mostrarEnUI) {
+            Log.d(ETIQUETA_LOG, "Actualizando la UI con CO2: " + finalValorCO2 + ", Temperatura: " + finalValorTemperatura);
+            runOnUiThread(() -> {
+                textViewCO2.setText("CO2: " + finalValorCO2 + " ppm");
+                textViewTemperatura.setText("Temperatura: " + finalValorTemperatura + " Cº");
+            });
+        }
+
+        // Enviar datos al servidor si corresponde
+        if (enviarDatos) {
+            Log.d(ETIQUETA_LOG, "Enviando datos al servidor");
+            onDataReceived((int) valorCO2, (int) valorTemperatura); // Enviar valores al método onDataReceived
+        }
+    }
+
+    public void onDataReceived(int co2, int temperature) {
+        agregarAlLog("Datos recibidos: CO2: " + co2 + ", Temp: " + temperature);
+
+        boolean validCo2 = co2 >= 0;
+        boolean validTemperature = temperature >= 0;
+
+        agregarAlLog("Validación: CO2 " + (validCo2 ? "válido" : "no válido") + ", Temperatura " + (validTemperature ? "válido" : "no válido"));
+
+        if (validCo2 || validTemperature) {
+            if (validCo2) {
+                SensorData co2Data = new SensorData("CO2", (float) co2);
+                agregarAlLog("Enviando CO2: " + co2Data.getValor());
+                sendDataToServer(co2Data);
             } else {
-                Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): parece que YA tengo los permisos necesarios en Android 12+ !!!!");
+                agregarAlLog("Valor CO2 no válido: " + co2);
+            }
+
+            if (validTemperature) {
+                SensorData tempData = new SensorData("Temperatura", (float) temperature);
+                agregarAlLog("Enviando Temperatura: " + tempData.getValor());
+                sendDataToServer(tempData);
+            } else {
+                agregarAlLog("Valor de Temperatura no válido: " + temperature);
             }
         } else {
-            // Para Android 11 y versiones anteriores, pedimos los permisos de Bluetooth y localización antiguos
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH) != PackageManager.PERMISSION_GRANTED
-                    || ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED
-                    || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(
-                        MainActivity.this,
-                        new String[]{Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_FINE_LOCATION},
-                        CODIGO_PETICION_PERMISOS
-                );
-            } else {
-                Log.d(ETIQUETA_LOG, " inicializarBlueTooth(): parece que YA tengo los permisos necesarios !!!!");
-            }
+            agregarAlLog("Ambos valores no válidos: CO2: " + co2 + ", Temp: " + temperature);
         }
-    } // ()
+    }
 
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                                           int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    private void sendDataToServer(SensorData sensorData) {
+        agregarAlLog("Enviando datos al servidor: " + sensorData.getTipo_dato_nombre() + ", Valor: " + sensorData.getValor());
 
-        switch (requestCode) {
-            case CODIGO_PETICION_PERMISOS:
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0 &&
-                        grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): permisos concedidos  !!!!");
-                    // Permission is granted. Continue the action or workflow
-                    // in your app.
+        Call<Void> call = apiService.postData(sensorData);
+
+        call.enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    agregarAlLog("Datos enviados con éxito: " + sensorData.getTipo_dato_nombre() + ", Valor: " + sensorData.getValor());
                 } else {
-                    Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): Socorro: permisos NO concedidos  !!!!");
+                    agregarAlLog("Error al enviar datos: " + response.code());
                 }
-                return;
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                agregarAlLog("Error en la comunicación: " + t.getMessage());
+            }
+        });
+    }
+
+    private void agregarAlLog(String mensaje) {
+        logBuilder.append(mensaje).append("\n");
+        logTextView.setText(logBuilder.toString());
+        if (logBuilder.length() > MAX_LINEAS_LOG) {
+            int indexFin = logBuilder.indexOf("\n", logBuilder.indexOf("\n") + 1);
+            logBuilder.delete(0, indexFin + 1);
         }
-        // Other 'case' lines to check for other
-        // permissions this app might request.
-    } // ()
-} // class
+    }
 
-// --------------------------------------------------------------
-// --------------------------------------------------------------
-// --------------------------------------------------------------
-// --------------------------------------------------------------
+    private void inicializarBlueTooth() {
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (bluetoothAdapter == null) {
+            agregarAlLog("Este dispositivo no soporta Bluetooth");
+            return;
+        }
+        if (!bluetoothAdapter.isEnabled()) {
+            agregarAlLog("Bluetooth está desactivado");
+            // Puedes iniciar una actividad para activar Bluetooth aquí
+        }
+        this.elEscanner = bluetoothAdapter.getBluetoothLeScanner();
+        Log.d(ETIQUETA_LOG, "Bluetooth LE Scanner inicializado.");
+    }
 
-
-Tramal
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        detenerBusquedaDispositivosBTLE();
+    }
+}
