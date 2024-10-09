@@ -1,51 +1,39 @@
+// -*-c++-*- 
+
 #include <bluefruit.h>
 
-#undef min 
-#undef max 
+#undef min
+#undef max
 
 #include "LED.h"
 #include "PuertoSerie.h"
-
-const int VgasPin = A5;   
-const int VrefPin = 28;  
-const int VtempPin = 29;  
-
-const int Voffset = 0;
-const float TIA_GAIN = 499.0;  
-const float SENSITIVITY_CODE = 44.26;
-const float M = SENSITIVITY_CODE * TIA_GAIN * 1e-9 * 1e3;  
-
-namespace Globales {
-  LED elLED(7);
-  PuertoSerie elPuerto(115200);
-};
-
 #include "EmisoraBLE.h"
 #include "Publicador.h"
 #include "Medidor.h"
 
 namespace Globales {
-  Medidor elMedidor; 
-  Publicador elPublicador(elMedidor);
-}
+  LED elLED(7);
+  PuertoSerie elPuerto(115200);
+  Publicador elPublicador;
+  Medidor elMedidor;
+};
 
 void inicializarPlaquita() {
 }
 
 void setup() {
   Serial.begin(9600);
-  pinMode(VgasPin, INPUT);
-  pinMode(VrefPin, INPUT);
-  pinMode(VtempPin, INPUT);
-
+  
   Globales::elPuerto.esperarDisponible();
+
   inicializarPlaquita();
 
   Serial.println("Allowing sensor to stabilize...");
-  delay(10000); 
+  delay(10000);
 
   Globales::elPublicador.encenderEmisora();
   Globales::elMedidor.iniciarMedidor();
+
   esperar(1000);
 
   Globales::elPuerto.escribir("---- setup(): fin ---- \n ");
@@ -66,53 +54,47 @@ inline void lucecitas() {
 
 namespace Loop {
   uint8_t cont = 0;
-  unsigned long previousMillis = 0;
-  const long interval = 2000;
-}
+};
 
 void loop() {
   using namespace Loop;
   using namespace Globales;
 
-  unsigned long currentMillis = millis();
+  cont++;
 
-  if (currentMillis - previousMillis >= interval) {
-    previousMillis = currentMillis; 
+  elPuerto.escribir("\n---- loop(): empieza ");
+  elPuerto.escribir(cont);
+  elPuerto.escribir("\n");
 
-    cont++;
+  lucecitas();
 
-    elPuerto.escribir("\n---- loop(): empieza ");
-    elPuerto.escribir(cont);
-    elPuerto.escribir("\n");
+  // Usar las funciones de Medidor para obtener los valores de CO2 y temperatura
+  float valorCO2 = elMedidor.medirCO2();  // Ahora está en float
+  Serial.print("Valor CO2 medido (previo a publicación): ");
+  Serial.println(valorCO2);  // Imprime el valor medido antes de la publicación
+  elPublicador.publicarCO2(valorCO2, cont, 1000);
 
-    lucecitas();
+  float valorTemperatura = elMedidor.medirTemperatura();  // Ahora está en float
+  Serial.print("Valor Temperatura medido (previo a publicación): ");
+  Serial.println(valorTemperatura);  // Imprime el valor medido antes de la publicación
+  elPublicador.publicarTemperatura(valorTemperatura, cont, 1000);
 
-    int valorCO2 = elMedidor.medirCO2();
-    int valorTemperatura = elMedidor.medirTemperatura();
+  char datos[21] = {
+    'H', 'o', 'l', 'a',
+    'H', 'o', 'l', 'a',
+    'H', 'o', 'l', 'a',
+    'H', 'o', 'l', 'a',
+    'H', 'o', 'l', 'a',
+    'H'
+  };
 
-    elPublicador.publicarCO2(valorCO2, cont, 1000);
-    elPublicador.publicarTemperatura(1000);
+  elPublicador.laEmisora.emitirAnuncioIBeaconLibre(&datos[0], 21);
 
-    Serial.print("CO2: ");
-    Serial.print(valorCO2);
-    Serial.print(", Temperatura: ");
-    Serial.println(valorTemperatura);
+  esperar(100);
 
-    elPublicador.laEmisora.detenerAnuncio();
+  elPublicador.laEmisora.detenerAnuncio();
 
-    char datos[21] = {
-      'H', 'o', 'l', 'a',
-      'H', 'o', 'l', 'a',
-      'H', 'o', 'l', 'a',
-      'H', 'o', 'l', 'a',
-      'H', 'o', 'l', 'a',
-      'H'
-    };
-
-    elPublicador.laEmisora.emitirAnuncioIBeaconLibre(&datos[0], 21);
-
-    elPuerto.escribir("---- loop(): acaba **** ");
-    elPuerto.escribir(cont);
-    elPuerto.escribir("\n");
-  }
+  elPuerto.escribir("---- loop(): acaba **** ");
+  elPuerto.escribir(cont);
+  elPuerto.escribir("\n");
 }

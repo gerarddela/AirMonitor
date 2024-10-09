@@ -51,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
         textViewTemperatura = findViewById(R.id.ValorTemp);
 
         textViewCO2.setText("CO2: -");
-        textViewTemperatura.setText("Cº: -");
+        textViewTemperatura.setText("Temperatura: -");
 
         Log.d(ETIQUETA_LOG, "onCreate(): empieza");
         inicializarBlueTooth();
@@ -60,12 +60,6 @@ public class MainActivity extends AppCompatActivity {
         String baseUrl = ApiConfig.BASE_URL;
         Retrofit retrofit = ApiClient.getClient(baseUrl);
         apiService = retrofit.create(ApiService.class);
-
-        SensorData co2Data = new SensorData("CO2", 218.00f);
-        sendDataToServer(co2Data);
-
-        SensorData temperaturaData = new SensorData("Temperatura", 25.00f);
-        sendDataToServer(temperaturaData);
     }
 
     private void buscarTodosLosDispositivosBTLE() {
@@ -202,23 +196,53 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void mostrarValores(byte[] bytes, boolean enviarDatos, boolean mostrarEnUI) {
-        float valorCO2 = ((float)((bytes[11] & 0xFF) << 8 | (bytes[12] & 0xFF))) / 100.0f;
-        float valorTemperatura = ((float)(bytes[10] & 0xFF)) / 10.0f;
+        if (bytes.length < 14) {
+            Log.d(ETIQUETA_LOG, "El array de bytes es demasiado corto.");
+            return; // Salir si no hay suficientes bytes
+        }
+
+        int major = ((bytes[10] & 0xFF) << 8 | (bytes[11] & 0xFF));
+        int minor = ((bytes[12] & 0xFF) << 8 | (bytes[13] & 0xFF));
+
+        float valorCO2 = 0;
+        float valorTemperatura = 0;
+
+        Log.d(ETIQUETA_LOG, "Major = " + major + ", Minor = " + minor);
+
+        // Usar el valor de major para determinar si es CO2 o Temperatura
+        if (major == 0x11) { // Identificador para CO2
+            valorCO2 = minor; // El valor está en el campo minor para CO2
+        } else if (major == 0x12) { // Identificador para Temperatura
+            valorTemperatura = minor / 10.0f; // Asegúrate de que este ajuste sea correcto
+        } else {
+            Log.d(ETIQUETA_LOG, "Major no reconocido: " + major);
+        }
 
         Log.d(ETIQUETA_LOG, "CO2 = " + valorCO2 + " ppm");
         Log.d(ETIQUETA_LOG, "Temperatura = " + valorTemperatura + " Cº");
 
+
+        // Declarar las variables finales para usarlas dentro de la lambda
+        final float finalValorCO2 = valorCO2;
+        final float finalValorTemperatura = valorTemperatura;
+
+        // Actualizar la UI con los valores
         if (mostrarEnUI) {
+            Log.d(ETIQUETA_LOG, "Actualizando la UI con CO2: " + finalValorCO2 + ", Temperatura: " + finalValorTemperatura);
             runOnUiThread(() -> {
-                textViewCO2.setText("CO2: " + valorCO2 + " ppm");
-                textViewTemperatura.setText("Temperatura: " + valorTemperatura + " Cº");
+                textViewCO2.setText("CO2: " + finalValorCO2 + " ppm");
+                textViewTemperatura.setText("Temperatura: " + finalValorTemperatura + " Cº");
             });
         }
 
+        // Enviar datos al servidor si corresponde
         if (enviarDatos) {
-            onDataReceived((int) valorCO2, (int) valorTemperatura);
+            Log.d(ETIQUETA_LOG, "Enviando datos al servidor");
+            onDataReceived((int) valorCO2, (int) valorTemperatura); // Enviar valores al método onDataReceived
         }
     }
+
+
 
     public void onDataReceived(int co2, int temperature) {
         agregarAlLog("Datos recibidos: CO2: " + co2 + ", Temp: " + temperature);
