@@ -6,10 +6,10 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ApiClient {
     private static Retrofit retrofit = null;
 
-    public static Retrofit getClient() {
-        if (retrofit == null) {
+    public static Retrofit getClient(String baseUrl) {
+        if (retrofit == null || !retrofit.baseUrl().toString().equals(baseUrl)) {
             retrofit = new Retrofit.Builder()
-                    .baseUrl(ApiConfig.BASE_URL) // Usa la URL base aquí
+                    .baseUrl(baseUrl)
                     .addConverterFactory(GsonConverterFactory.create())
                     .build();
         }

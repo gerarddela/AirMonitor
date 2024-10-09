@@ -12,14 +12,12 @@ public class Utilidades {
 
     public static UUID stringToUUID(String uuid) {
         if (uuid.length() != 16) {
-            throw new Error("stringUUID: string no tiene 16 caracteres ");
+            throw new Error("stringUUID: string no tiene 16 caracteres");
         }
         byte[] comoBytes = uuid.getBytes();
-
         String masSignificativo = uuid.substring(0, 8);
         String menosSignificativo = uuid.substring(8, 16);
-        UUID res = new UUID(Utilidades.bytesToLong(masSignificativo.getBytes()), Utilidades.bytesToLong(menosSignificativo.getBytes()));
-
+        UUID res = new UUID(bytesToLong(masSignificativo.getBytes()), bytesToLong(menosSignificativo.getBytes()));
         return res;
     }
 
@@ -35,7 +33,6 @@ public class Utilidades {
         if (bytes == null) {
             return "";
         }
-
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) {
             sb.append((char) b);
@@ -63,17 +60,14 @@ public class Utilidades {
             return 0;
         }
 
-        if (bytes.length > 4) {
-            throw new Error("demasiados bytes para pasar a int ");
+        if (bytes.length != 2) {
+            throw new Error("Número de bytes incorrecto para convertir a int");
         }
+
         int res = 0;
 
         for (byte b : bytes) {
             res = (res << 8) + (b & 0xFF);
-        }
-
-        if ((bytes[0] & 0x8) != 0) {
-            res = -(~(byte) res) - 1;
         }
 
         return res;
@@ -87,6 +81,11 @@ public class Utilidades {
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) {
             sb.append(String.format("%02X", b));
+            sb.append(':');
+        }
+
+        if (sb.length() > 0) {
+            sb.setLength(sb.length() - 1);
         }
         return sb.toString();
     }
@@ -122,5 +121,9 @@ public class Utilidades {
             bytes[8 + i] = (byte) (leastSigBits >>> (8 * (7 - i)));
         }
         return bytes;
+    }
+
+    public static boolean compararUUIDs(UUID uuidDetectado, UUID uuidBuscado) {
+        return uuidDetectado.equals(uuidBuscado);
     }
 }

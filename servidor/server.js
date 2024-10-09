@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 
-// Configuración de la base de datos
 const pool = new Pool({
     host: process.env.DB_HOST || 'db',
     user: process.env.DB_USER || 'gerarddelafuente',
@@ -11,20 +10,16 @@ const pool = new Pool({
     port: 5432,
 });
 
-// Crear un servidor Express
 const app = express();
 const PORT = 3000;
 
-// Middleware para CORS
 app.use(cors());
-app.use(express.json()); // Permitir que el servidor entienda el JSON
+app.use(express.json()); 
 
-// Middleware para manejar las solicitudes
 app.get('/', (req, res) => {
     res.send('¡Servidor en funcionamiento!');
 });
 
-// Ruta para obtener las mediciones
 app.get('/mediciones', async (req, res) => {
     const query = 'SELECT * FROM mediciones ORDER BY fecha DESC LIMIT 10';
 
@@ -37,23 +32,35 @@ app.get('/mediciones', async (req, res) => {
     }
 });
 
-// Nueva ruta POST para agregar mediciones
 app.post('/mediciones', async (req, res) => {
-    const { name, value } = req.body; // Cambiado para que coincida con la estructura de SensorData
+    const { tipo_dato_nombre, valor } = req.body;
 
-    // Verificar que ambos campos son proporcionados
-    if (!name || !value) {
-        return res.status(400).send('Los campos "name" y "value" son requeridos.');
+    console.log(`Datos recibidos en el servidor: tipo_dato_nombre: ${tipo_dato_nombre}, valor: ${valor}`); // Log aquí
+
+    if (!tipo_dato_nombre || valor === undefined) {
+        return res.status(400).send('Los campos "tipo_dato_nombre" y "valor" son requeridos.');
     }
 
-    // Comprobación para asegurar que el valor es un número
-    if (isNaN(value)) {
-        return res.status(400).send('El campo "value" debe ser un número.');
+    console.log(`Datos válidos: tipo_dato_nombre: ${tipo_dato_nombre}, valor: ${valor}`); // Log adicional
+
+    if (isNaN(valor)) {
+        return res.status(400).send('El campo "valor" debe ser un número.');
     }
 
     try {
-        // Aquí podrías hacer una lógica para asegurarte de que el nombre corresponde a CO2 o Temperatura
-        await insertarMedicion(name === 'CO2' ? parseFloat(value) : null, name === 'Temperatura' ? parseFloat(value) : null);
+        let co2 = null;
+        let temperatura = null;
+
+        if (tipo_dato_nombre === 'CO2') {
+            co2 = parseFloat(valor);
+        } else if (tipo_dato_nombre === 'Temperatura') {
+            temperatura = parseFloat(valor);
+        } else {
+            return res.status(400).send('El tipo de dato no es válido. Debe ser "CO2" o "Temperatura".');
+        }
+
+        console.log(`Insertando medición: CO2: ${co2}, Temperatura: ${temperatura}`); // Log aquí
+        await insertarMedicion(co2, temperatura);
         res.status(201).send('Medición insertada con éxito');
     } catch (err) {
         console.error('Error al insertar la medición:', err);
@@ -61,7 +68,6 @@ app.post('/mediciones', async (req, res) => {
     }
 });
 
-// Función para conectar a la base de datos con reintentos
 async function conectarBaseDatos() {
     let retries = 5;
     while (retries) {
@@ -78,7 +84,6 @@ async function conectarBaseDatos() {
     throw new Error('No se pudo conectar a la base de datos después de varios intentos.');
 }
 
-// Función para crear la tabla de mediciones
 async function crearTablaMediciones() {
     const query = `
         CREATE TABLE IF NOT EXISTS mediciones (
@@ -100,7 +105,6 @@ async function crearTablaMediciones() {
     }
 }
 
-// Función para insertar mediciones
 async function insertarMedicion(co2, temperatura) {
     const query = `
         INSERT INTO mediciones (co2, temperatura)
@@ -118,7 +122,6 @@ async function insertarMedicion(co2, temperatura) {
     }
 }
 
-// Llamar a la función para crear la tabla y agregar valores fijos al iniciar el servidor
 async function iniciarServidor() {
     await conectarBaseDatos();
     await crearTablaMediciones();
@@ -128,5 +131,4 @@ async function iniciarServidor() {
     });
 }
 
-// Iniciar el proceso
 iniciarServidor();

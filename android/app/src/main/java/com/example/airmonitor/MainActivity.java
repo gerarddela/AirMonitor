@@ -18,7 +18,6 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -34,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int MAX_LINEAS_LOG = 10;
 
     private BluetoothLeScanner elEscanner;
-    private ScanCallback callbackDelEscaneo = null;
+    private ScanCallback callbackDelEscaneo;
 
     private TextView logTextView;
     private StringBuilder logBuilder = new StringBuilder();
@@ -54,45 +53,70 @@ public class MainActivity extends AppCompatActivity {
         textViewCO2.setText("CO2: -");
         textViewTemperatura.setText("Cº: -");
 
-        Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
+        Log.d(ETIQUETA_LOG, "onCreate(): empieza");
         inicializarBlueTooth();
-        Log.d(ETIQUETA_LOG, " onCreate(): termina ");
+        Log.d(ETIQUETA_LOG, "onCreate(): termina");
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://172.20.10.2:13000/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
+        String baseUrl = ApiConfig.BASE_URL;
+        Retrofit retrofit = ApiClient.getClient(baseUrl);
         apiService = retrofit.create(ApiService.class);
 
-        textViewCO2 = findViewById(R.id.ValorCO2);
-        textViewTemperatura = findViewById(R.id.ValorTemp);
+        SensorData co2Data = new SensorData("CO2", 218.00f);
+        sendDataToServer(co2Data);
+
+        SensorData temperaturaData = new SensorData("Temperatura", 25.00f);
+        sendDataToServer(temperaturaData);
     }
 
     private void buscarTodosLosDispositivosBTLE() {
         detenerBusquedaDispositivosBTLE();
-        Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): empieza ");
+        Log.d(ETIQUETA_LOG, "buscarTodosLosDispositivosBTLE(): empieza");
+
         this.callbackDelEscaneo = new ScanCallback() {
             @Override
             public void onScanResult(int callbackType, ScanResult resultado) {
                 super.onScanResult(callbackType, resultado);
-                mostrarInformacionDispositivoBTLE(resultado);
-                agregarAlLog("Dispositivo detectado:\n" + resultado.getDevice().getAddress());
+
+                String nombreDispositivo = resultado.getDevice().getName();
+                String uuid = nombreDispositivo != null ? nombreDispositivo : "";
+
+                if (!"EQUIPO-GERARD-3A".equals(uuid)) {
+                    mostrarInformacionDispositivoBTLE(resultado);
+                    agregarAlLog("Dispositivo detectado:\n" + resultado.getDevice().getAddress());
+                } else {
+                    Log.d(ETIQUETA_LOG, "Dispositivo ignorado: " + uuid);
+                }
             }
 
             @Override
             public void onBatchScanResults(List<ScanResult> results) {
                 super.onBatchScanResults(results);
-                Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): onBatchScanResults() ");
+                for (ScanResult result : results) {
+                    String nombreDispositivo = result.getDevice().getName();
+                    String uuid = nombreDispositivo != null ? nombreDispositivo : "";
+
+                    if (!"EQUIPO-GERARD-3A".equals(uuid)) {
+                        mostrarInformacionDispositivoBTLE(result);
+                        agregarAlLog("Dispositivo detectado:\n" + result.getDevice().getAddress());
+                    } else {
+                        Log.d(ETIQUETA_LOG, "Dispositivo ignorado: " + uuid);
+                    }
+                }
             }
 
             @Override
             public void onScanFailed(int errorCode) {
                 super.onScanFailed(errorCode);
-                Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTLE(): onScanFailed() ");
+                Log.d(ETIQUETA_LOG, "buscarTodosLosDispositivosBTLE(): onScanFailed() - Código de error: " + errorCode);
             }
         };
-        this.elEscanner.startScan(this.callbackDelEscaneo);
+
+        ScanSettings scanSettings = new ScanSettings.Builder()
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .build();
+        this.elEscanner.startScan(null, scanSettings, this.callbackDelEscaneo);
     }
+
 
     private void buscarEsteDispositivoBTLE(final UUID dispositivoBuscado) {
         detenerBusquedaDispositivosBTLE();
@@ -107,7 +131,10 @@ public class MainActivity extends AppCompatActivity {
                 UUID uuid = Utilidades.bytesToUUID(tib.getUUID());
 
                 if (uuid.equals(dispositivoBuscado)) {
-                    mostrarInformacionDispositivoBTLE(resultado);
+                    Log.d(ETIQUETA_LOG, "Conectado al dispositivo Sparkfun: " + dispositivo.getName());
+                    agregarAlLog("Conectado al dispositivo Sparkfun: " + dispositivo.getName());
+
+                    mostrarValores(bytes, true, true);
                 }
             }
 
@@ -130,13 +157,20 @@ public class MainActivity extends AppCompatActivity {
         this.elEscanner.startScan(null, scanSettings, this.callbackDelEscaneo);
     }
 
+
     private void detenerBusquedaDispositivosBTLE() {
         agregarAlLog("Se ha detenido la búsqueda.");
         if (this.callbackDelEscaneo != null) {
             this.elEscanner.stopScan(this.callbackDelEscaneo);
             this.callbackDelEscaneo = null;
         }
+
+        runOnUiThread(() -> {
+            textViewCO2.setText("CO2: - ");
+            textViewTemperatura.setText("Temperatura: - ");
+        });
     }
+
 
     public void botonBuscarDispositivosBTLEPulsado(View v) {
         this.buscarTodosLosDispositivosBTLE();
@@ -164,43 +198,91 @@ public class MainActivity extends AppCompatActivity {
         Log.d(ETIQUETA_LOG, " bytes = " + new String(bytes));
         Log.d(ETIQUETA_LOG, " bytes (" + bytes.length + ") = " + Utilidades.bytesToHexString(bytes));
 
-        TramaIBeacon tib = new TramaIBeacon(bytes);
-        String uuidDispositivo = Utilidades.bytesToHexString(tib.getUUID());
-        Log.d(ETIQUETA_LOG, " uuid  = " + uuidDispositivo);
-
-        UUID uuidObjetivo = Utilidades.stringToUUID("EQUIPO-GERARD-3A");
-        if (uuidDispositivo.equals(Utilidades.uuidToHexString(uuidObjetivo))) {
-            Log.d(ETIQUETA_LOG, "Te has conectado a la SparkFun: " + bluetoothDevice.getName());
-            agregarAlLog("Te has conectado a la SparkFun: " + bluetoothDevice.getName());
-            mostrarValores(bytes);
-        }
+        mostrarValores(bytes, false, false);
     }
 
-    private void mostrarValores(byte[] bytes) {
-        int valorCO2 = (bytes[11] & 0xFF) << 8 | (bytes[12] & 0xFF);
-        int valorTemperatura = (bytes[10] & 0xFF);
+    private void mostrarValores(byte[] bytes, boolean enviarDatos, boolean mostrarEnUI) {
+        float valorCO2 = ((float)((bytes[11] & 0xFF) << 8 | (bytes[12] & 0xFF))) / 100.0f;
+        float valorTemperatura = ((float)(bytes[10] & 0xFF)) / 10.0f;
 
         Log.d(ETIQUETA_LOG, "CO2 = " + valorCO2 + " ppm");
         Log.d(ETIQUETA_LOG, "Temperatura = " + valorTemperatura + " Cº");
 
-        runOnUiThread(() -> {
-            textViewCO2.setText("CO2: " + valorCO2);
-            textViewTemperatura.setText("Cº: " + valorTemperatura);
+        if (mostrarEnUI) {
+            runOnUiThread(() -> {
+                textViewCO2.setText("CO2: " + valorCO2 + " ppm");
+                textViewTemperatura.setText("Temperatura: " + valorTemperatura + " Cº");
+            });
+        }
+
+        if (enviarDatos) {
+            onDataReceived((int) valorCO2, (int) valorTemperatura);
+        }
+    }
+
+    public void onDataReceived(int co2, int temperature) {
+        agregarAlLog("Datos recibidos: CO2: " + co2 + ", Temp: " + temperature);
+
+        boolean validCo2 = co2 >= 0;
+        boolean validTemperature = temperature >= 0;
+
+        agregarAlLog("Validación: CO2 " + (validCo2 ? "válido" : "no válido") + ", Temperatura " + (validTemperature ? "válido" : "no válido"));
+
+        if (validCo2 || validTemperature) {
+            if (validCo2) {
+                SensorData co2Data = new SensorData("CO2", (float) co2);
+                agregarAlLog("Enviando CO2: " + co2Data.getValor());
+                sendDataToServer(co2Data);
+            } else {
+                agregarAlLog("Valor CO2 no válido: " + co2);
+            }
+
+            if (validTemperature) {
+                SensorData tempData = new SensorData("Temperatura", (float) temperature);
+                agregarAlLog("Enviando Temperatura: " + tempData.getValor());
+                sendDataToServer(tempData);
+            } else {
+                agregarAlLog("Valor de Temperatura no válido: " + temperature);
+            }
+        } else {
+            agregarAlLog("Ambos valores no válidos: CO2: " + co2 + ", Temp: " + temperature);
+        }
+    }
+
+    private void sendDataToServer(SensorData sensorData) {
+        agregarAlLog("Enviando datos al servidor: " + sensorData.getTipo_dato_nombre() + ", Valor: " + sensorData.getValor());
+
+        Call<Void> call = apiService.postData(sensorData);
+
+        call.enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    agregarAlLog("Datos enviados con éxito: " + sensorData.getTipo_dato_nombre() + ", Valor: " + sensorData.getValor());
+                } else {
+                    agregarAlLog("Error al enviar datos: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                agregarAlLog("Error en la comunicación: " + t.getMessage());
+            }
         });
-        onDataReceived(valorCO2, valorTemperatura);
     }
 
     private void agregarAlLog(String mensaje) {
         logBuilder.append(mensaje).append("\n");
-        String[] lineas = logBuilder.toString().split("\n");
+        logTextView.setText(logBuilder.toString());
 
-        if (lineas.length > MAX_LINEAS_LOG) {
-            logBuilder.delete(0, logBuilder.length());
+        if (logBuilder.toString().split("\n").length > MAX_LINEAS_LOG) {
+            String[] lineas = logBuilder.toString().split("\n");
+            logBuilder = new StringBuilder();
             for (int i = lineas.length - MAX_LINEAS_LOG; i < lineas.length; i++) {
                 logBuilder.append(lineas[i]).append("\n");
             }
         }
-        runOnUiThread(() -> logTextView.setText(logBuilder.toString()));
+        logTextView.setText(logBuilder.toString());
     }
 
     private void inicializarBlueTooth() {
@@ -220,102 +302,9 @@ public class MainActivity extends AppCompatActivity {
         elEscanner = bta.getBluetoothLeScanner();
     }
 
-    public void onDataReceived(String co2, String temp) {
-        ApiService apiService = ApiClient.getClient().create(ApiService.class);
-
-        SensorData co2Data = new SensorData("CO2", Integer.parseInt(co2));
-        Call<Void> co2Call = apiService.postData(co2Data);
-        co2Call.enqueue(new Callback<Void>() {
-            @Override
-            public void onResponse(Call<Void> call, Response<Void> response) {
-                if (response.isSuccessful()) {
-                    Log.d("API", "CO2 data sent successfully");
-                } else {
-                    Log.e("API", "Failed to send CO2 data");
-                }
-            }
-
-            @Override
-            public void onFailure(Call<Void> call, Throwable t) {
-                Log.e("API", "Error sending CO2 data: " + t.getMessage());
-            }
-        });
-
-        SensorData tempData = new SensorData("Temperatura", Integer.parseInt(temp));
-        Call<Void> tempCall = apiService.postData(tempData);
-        tempCall.enqueue(new Callback<Void>() {
-            @Override
-            public void onResponse(Call<Void> call, Response<Void> response) {
-                if (response.isSuccessful()) {
-                    Log.d("API", "Temperature data sent successfully");
-                } else {
-                    Log.e("API", "Failed to send Temperature data");
-                }
-            }
-
-            @Override
-            public void onFailure(Call<Void> call, Throwable t) {
-                Log.e("API", "Error sending Temperature data: " + t.getMessage());
-            }
-        });
-    }
-
-    public void onDataReceived(int co2, int temperature) {
-        agregarAlLog("Datos recibidos: CO2: " + co2 + ", Temp: " + temperature);
-
-        textViewCO2.setText("CO2: " + co2);
-        textViewTemperatura.setText("Cº: " + temperature);
-
-        SensorData co2Data = new SensorData("CO2", co2);
-        SensorData tempData = new SensorData("Temperatura", temperature);
-
-        sendDataToServer(co2Data);
-        sendDataToServer(tempData);
-    }
-
-    private void sendDataToServer(SensorData sensorData) {
-        ApiService apiService = ApiClient.getClient().create(ApiService.class);
-
-        Call<Void> call = apiService.postData(sensorData);
-
-        call.enqueue(new retrofit2.Callback<Void>() {
-            @Override
-            public void onResponse(Call<Void> call, retrofit2.Response<Void> response) {
-                if (response.isSuccessful()) {
-                    agregarAlLog("Datos enviados con éxito: " + sensorData.getName() + ": " + sensorData.getValue());
-                } else {
-                    agregarAlLog("Error al enviar datos: " + response.code());
-                }
-            }
-
-            @Override
-            public void onFailure(Call<Void> call, Throwable t) {
-                agregarAlLog("Error en la solicitud: " + t.getMessage());
-            }
-        });
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Log.d(ETIQUETA_LOG, " onResume() ");
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        Log.d(ETIQUETA_LOG, " onPause() ");
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        Log.d(ETIQUETA_LOG, " onStop() ");
-    }
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.d(ETIQUETA_LOG, " onDestroy() ");
+        detenerBusquedaDispositivosBTLE();
     }
 }

@@ -2,6 +2,7 @@
 #define PUERTO_SERIE_H_INCLUIDO
 
 class PuertoSerie {
+
 public:
   PuertoSerie(long baudios) {
     Serial.begin(baudios);
@@ -15,6 +16,7 @@ public:
   void escribir(T mensaje) {
     Serial.print(mensaje);
   }
+
 };
 
-#endif
+#endif 

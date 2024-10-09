@@ -1,77 +1,64 @@
 #ifndef PUBLICADOR_H_INCLUIDO
 #define PUBLICADOR_H_INCLUIDO
 
+#include "Medidor.h"
+
 class Publicador {
 
 private:
+
   uint8_t beaconUUID[16] = { 
     'E', 'Q', 'U', 'I', 'P', 'O', '-', 'G', 
-    'E', 'R', 'A', 'R', 'D', '-', '3', 'A' //EQUIPO-GERARD-3A
+    'E', 'R', 'A', 'R', 'D', '-', '3', 'A' // EQUIPO-GERARD-3A
   };
-  uint8_t contador = 1;  // Contador como miembro de la clase
+
+  uint8_t contador = 1;
   const int RSSI = -53;
 
+  Medidor& elMedidor;
+
 public:
+
   EmisoraBLE laEmisora {
-    "GTI-3A", //  nombre emisora
-    0x004c, // fabricanteID (Apple)
-    4 // txPower
-  };
-  
-public:
-  enum MedicionesID  {
-    CO2 = 11,
-    TEMPERATURA = 12, //identifiador hexa 
-    RUIDO = 13
+    "GTI-3A",
+    0x004c,
+    4 
   };
 
-  Publicador() {}
+  enum MedicionesID {
+    CO2 = 11,   
+    TEMPERATURA = 12,
+    RUIDO = 13 
+  };
 
-  // Encender la emisora
+  Publicador(Medidor& medidor) : elMedidor(medidor) {}
+
   void encenderEmisora() {
-    laEmisora.encenderEmisora();  // Eliminando el uso innecesario de (*this)
+    laEmisora.encenderEmisora();
   }
 
-  void publicarCO2(int16_t valorCO2, uint8_t contador, long tiempoEspera) {
-    uint16_t major = (MedicionesID::CO2 << 8) + contador;
-    Globales::elPuerto.escribir("Enviando CO2: ");
-    Globales::elPuerto.escribir(valorCO2);
-    Globales::elPuerto.escribir("\n");
+  void publicarCO2(int valorCO2, uint8_t cont, long tiempoEspera) {
+    uint16_t major = (MedicionesID::CO2 << 8) + cont; 
     laEmisora.emitirAnuncioIBeacon(beaconUUID, major, valorCO2, RSSI);
-    delay(tiempoEspera);
+    esperar(tiempoEspera);
     laEmisora.detenerAnuncio();
   }
 
-  void publicarTemperatura(int16_t valorTemperatura, uint8_t contador, long tiempoEspera) {
+  void publicarTemperatura(long tiempoEspera) {
+    int16_t valorTemperatura = elMedidor.medirTemperatura();
     uint16_t major = (MedicionesID::TEMPERATURA << 8) + contador;
     laEmisora.emitirAnuncioIBeacon(beaconUUID, major, valorTemperatura, RSSI);
-    delay(tiempoEspera);
+    esperar(tiempoEspera);
     laEmisora.detenerAnuncio();
+    contador++;
   }
 
-  // Publicar todas las mediciones (CO2 y Temperatura)
   void publicarMediciones() {
-    // Simular valores de CO2 y temperatura
-    int16_t valorCO2 = random(400, 3000);  // CO2 entre 400 ppm y 3000 ppm
-    int16_t valorTemperatura = random(10, 35);  // Temperatura entre 10°C y 35°C
-
-    long tiempoEspera = 1000;  // Espera de 1 segundo entre anuncios
-
-    // Imprimir valores en el Monitor Serial
-    Globales::elPuerto.escribir("CO2: ");
-    Globales::elPuerto.escribir(valorCO2);
-    Globales::elPuerto.escribir(" ppm, Temperatura: ");
-    Globales::elPuerto.escribir(valorTemperatura);
-    Globales::elPuerto.escribir(" °C\n");
-
-    // Publicar CO2
-    publicarCO2(valorCO2, contador, tiempoEspera);
-    
-    // Publicar temperatura
-    publicarTemperatura(valorTemperatura, contador, tiempoEspera);
-
-    contador++;  // Incrementar el contador para la próxima medición
-  }   
+    int16_t co2 = elMedidor.medirCO2();
+    int16_t temperatura = elMedidor.medirTemperatura();
+    laEmisora.emitirAnuncioIBeacon(beaconUUID, MedicionesID::CO2, temperatura, RSSI);
+    laEmisora.enviarDatos(temperatura, co2);
+  }
 };
 
-#endif
+#endif 
